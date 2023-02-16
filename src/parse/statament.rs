@@ -1,4 +1,4 @@
-use super::Parse;
+use super::{errors::ErrorCode, Parse};
 use crate::lexer::tokens::{Expression, Operator, Token, Type};
 
 pub enum Stantament {
@@ -13,15 +13,22 @@ pub enum Stantament {
         then: Vec<Stantament>,
         or: Option<Vec<Stantament>>,
     },
+
+    FUNC {
+        name: String,
+        parms: Vec<(String, Type)>,
+        body: Vec<Stantament>,
+        return_type: Option<Type>,
+    },
 }
 
 impl std::fmt::Debug for Stantament {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::LET { name, typed, expr } => {
-                write!(f, "let {} <{:?}> = {:?};", name, typed, expr)
+            Stantament::LET { name, typed, expr } => {
+                write!(f, "let {} <{:?}> = {:?};\n", name, typed, expr)
             }
-            Self::IF {
+            Stantament::IF {
                 condition,
                 then,
                 or,
@@ -30,6 +37,12 @@ impl std::fmt::Debug for Stantament {
                 "if({:?}) {{\n    {:#?}\n}} else {{\n    {:?}\n}}",
                 condition, then, or
             ),
+            Stantament::FUNC {
+                name,
+                parms,
+                body,
+                return_type,
+            } => write!(f, "func {name}({:?}) -> {:?} {{\n    {:?}\n}}\n", parms, return_type, body),
         }
     }
 }
@@ -38,16 +51,10 @@ impl Stantament {
     pub fn new_let(parse: &mut Parse) -> Stantament {
         let name = match parse.next() {
             Token::Identifier(name) => name,
-            t => parse.syntax_error(t, Token::Identifier(String::from("Name"))),
+            _ => parse.fatal(ErrorCode::STATUS_VARIABLE_ERROR, format!("expected identifier after 'let'")),
         };
 
-        let typed = match parse.next() {
-            Token::Type(typed) => Some(typed),
-            _ => {
-                parse.back();
-                None
-            }
-        };
+        let typed = Stantament::get_type(parse);
 
         parse.check(Token::Operator(Operator::ASSIGNMENT));
 
@@ -136,6 +143,69 @@ impl Stantament {
             condition,
             then,
             or,
+        }
+    }
+
+    pub fn new_func(parse: &mut Parse) -> Stantament {
+        let name = match parse.next() {
+            Token::Identifier(name) => name,
+            _ => parse.fatal(ErrorCode::STATUS_FUNCTION_PROTO_ERROR, format!("expected identifier after 'func'")),
+        };
+
+        parse.check(Token::LP);
+
+        let mut parms = Vec::new();
+
+        loop {
+
+            match parse.next() {
+                Token::Identifier(parm_name) => match Self::get_type(parse) {
+                    Some(typed) => parms.push((parm_name, typed)),
+                    _ => parse.fatal(ErrorCode::STATUS_PARAMETRE_TYPE, format!("expected parametre type after 'func {name}({parm_name}: ..?)' ")),
+                },
+                Token::Comma => (),
+                Token::RP => break,
+                _=> ()
+            }
+
+            match parse.next() {
+                Token::Comma => (),
+                Token::RP => break,
+                token => parse.unexpected(token)
+            }
+        }
+
+        parse.check(Token::LB);
+
+        let mut body = Vec::new();
+        loop {
+            match parse.next() {
+                Token::Let => body.push(Stantament::new_let(parse)),
+                Token::If => body.push(Stantament::new_if(parse)),
+                Token::RB => break,
+                tk => parse.unexpected(tk),
+            }
+        }
+
+        Stantament::FUNC { name, parms, body, return_type: None }
+    }
+
+    fn get_type(parse: &mut Parse) -> Option<Type> {
+        match parse.next() {
+            Token::Colon => (),
+            _ => {
+                parse.back();
+                return None;
+            }
+        }
+
+        match parse.next() {
+            Token::Type(typed) => Some(typed),
+            Token::Identifier(id) => Some(Type::Object(id)),
+            _ => parse.fatal(
+                ErrorCode::STATUS_FAILED_TYPING,
+                format!("expected type after ':'"),
+            ),
         }
     }
 }
