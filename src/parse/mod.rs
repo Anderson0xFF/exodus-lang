@@ -1,10 +1,11 @@
-use self::{statament::Stantament, value::Value};
+use self::{errors::ErrorCode, statament::Stantament, values::Value};
 use crate::lexer::tokens::Token;
 use logos::Lexer;
 use std::process::exit;
 
+pub mod errors;
 pub mod statament;
-pub mod value;
+pub mod values;
 
 pub struct Parse {
     filename: String,
@@ -36,6 +37,7 @@ impl Parse {
             match self.next() {
                 Token::Let => stantament.push(Stantament::new_let(self)),
                 Token::If => stantament.push(Stantament::new_if(self)),
+                Token::Func => stantament.push(Stantament::new_func(self)),
                 Token::EOF => break,
                 tk => self.unexpected(tk),
             }
@@ -58,8 +60,8 @@ impl Parse {
                 self.space += 1;
                 self.idx += 1;
             } else if current == Token::Error {
-                self.space += 1;
                 self.idx += 1;
+                self.space += 1;
             } else {
                 self.space += 1;
                 self.idx += 1;
@@ -73,6 +75,7 @@ impl Parse {
             if self.idx - 1 > 0 {
                 let current = self.tokens[(self.idx - 2) as usize].clone();
                 if current == Token::LINE {
+                    self.space = 0;
                     self.line -= 1;
                     self.idx -= 1;
                 } else if current == Token::SPACE {
@@ -80,8 +83,10 @@ impl Parse {
                     self.idx -= 1;
                 } else if current == Token::Error {
                     self.idx -= 1;
+                    self.space -= 1;
                 } else {
                     self.idx -= 1;
+                    self.space -= 1;
                     break current;
                 }
             } else {
@@ -97,15 +102,27 @@ impl Parse {
         }
     }
 
-    fn syntax_error(&self, current: Token, expected: Token) -> ! {
+    pub fn fatal(&self, status: ErrorCode, note: String) -> ! {
         println!(
-            "syntax error: expected '{:?}' got '{:?}' in {} -> [{}:{}]",
-            expected, current, self.filename, self.line, self.space
+            "{}[{}:{}] => [ status: {:?}, code: 0x{:X} ]\n    note: {}",
+            self.filename,
+            self.line,
+            self.space,
+            status,
+            status.code(),
+            note
         );
-        exit(1)
+        exit(0)
     }
 
-    fn unexpected(&self, token: Token){
+    fn syntax_error(&self, current: Token, expected: Token) -> ! {
+        self.fatal(
+            ErrorCode::STATUS_SYNTAX_ERROR,
+            format!("expected '{:?}' got '{:?}'.", expected, current),
+        )
+    }
+
+    fn unexpected(&self, token: Token) {
         println!(
             "syntax error: unexpected '{:?}' in {} -> [{}:{}]",
             token, self.filename, self.line, self.space
