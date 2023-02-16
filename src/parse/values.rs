@@ -14,4 +14,5 @@ pub enum Value {
     U32(u32),
     U64(u64),
     REF(String),
+    OBJECT(String),
 }
