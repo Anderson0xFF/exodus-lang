@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-
-
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -15,7 +12,9 @@ pub enum ErrorCode {
     STATUS_SYNTAX_ERROR,
     STATUS_FUNCTION_PROTO_ERROR,
     STATUS_VARIABLE_ERROR,
-    STATUS_PARAMETRE_TYPE
+    STATUS_PARAMETRE_TYPE,
+    STATUS_NOT_DECLARED_VARIABLE,
+    STATUS_MISMATCHED_TYPES
 }
 
 impl ErrorCode {
@@ -30,6 +29,8 @@ impl ErrorCode {
             ErrorCode::STATUS_FUNCTION_PROTO_ERROR => 10006,
             ErrorCode::STATUS_VARIABLE_ERROR => 10007,
             ErrorCode::STATUS_PARAMETRE_TYPE => 10008,
+            ErrorCode::STATUS_NOT_DECLARED_VARIABLE => 10009,
+            ErrorCode::STATUS_MISMATCHED_TYPES => 10010,
         }
     }
 }
