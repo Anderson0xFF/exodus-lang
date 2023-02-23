@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     CHAR(char),
@@ -13,6 +10,6 @@ pub enum Value {
     U16(u16),
     U32(u32),
     U64(u64),
-    REF(String),
+    VAR(String),
     OBJECT(String),
 }
