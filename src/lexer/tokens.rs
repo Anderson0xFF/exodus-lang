@@ -1,26 +1,8 @@
-#![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
+use super::types::Type;
 use crate::parse::values::Value;
 use logos::Logos;
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Type {
-    I8,
-    I16,
-    I32,
-    I64,
-    U8,
-    U16,
-    U32,
-    U64,
-    F32,
-    F64,
-    Boolean,
-    Char,
-    String,
-    Object(String),
-}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
@@ -36,7 +18,7 @@ pub enum Expression {
 }
 
 #[derive(Logos, PartialEq, Clone)]
-pub enum Token {
+pub enum Keywords {
     #[regex("[a-zA-Z]+", |lexer| lexer.slice().to_owned())]
     Identifier(String),
 
@@ -136,32 +118,32 @@ pub enum Token {
     EOF,
 }
 
-impl std::fmt::Debug for Token {
+impl std::fmt::Debug for Keywords {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::Identifier(identifier) => write!(f, "{identifier}"),
-            Token::String(value) => write!(f, "\"{value}\""),
-            Token::Let => write!(f, "let"),
-            Token::If => write!(f, "if"),
-            Token::Else => write!(f, "else"),
-            Token::Type(arg0) => f.debug_tuple("Type").field(arg0).finish(),
-            Token::Dot => write!(f, "."),
-            Token::Comma => write!(f, ","),
-            Token::Colon => write!(f, ":"),
-            Token::Semicolon => write!(f, ";"),
-            Token::Atsign => write!(f, "@"),
-            Token::LP => write!(f, "("),
-            Token::RP => write!(f, ")"),
-            Token::LB => write!(f, "{{"),
-            Token::RB => write!(f, "}}"),
-            Token::IntValue(value) => write!(f, "{value}"),
-            Token::Operator(value) => write!(f, "{:?}", value),
-            Token::Error => write!(f, "Error"),
-            Token::EOF => write!(f, "eof"),
-            Token::Bool(value) => write!(f, "{value}"),
-            Token::LINE => write!(f, "\n"),
-            Token::SPACE => write!(f, " "),
-            Token::Func => write!(f, "func"),
+            Keywords::Identifier(identifier) => write!(f, "{identifier}"),
+            Keywords::String(value) => write!(f, "\"{value}\""),
+            Keywords::Let => write!(f, "let"),
+            Keywords::If => write!(f, "if"),
+            Keywords::Else => write!(f, "else"),
+            Keywords::Type(arg0) => f.debug_tuple("Type").field(arg0).finish(),
+            Keywords::Dot => write!(f, "."),
+            Keywords::Comma => write!(f, ","),
+            Keywords::Colon => write!(f, ":"),
+            Keywords::Semicolon => write!(f, ";"),
+            Keywords::Atsign => write!(f, "@"),
+            Keywords::LP => write!(f, "("),
+            Keywords::RP => write!(f, ")"),
+            Keywords::LB => write!(f, "{{"),
+            Keywords::RB => write!(f, "}}"),
+            Keywords::IntValue(value) => write!(f, "{value}"),
+            Keywords::Operator(value) => write!(f, "{:?}", value),
+            Keywords::Error => write!(f, "Error"),
+            Keywords::EOF => write!(f, "eof"),
+            Keywords::Bool(value) => write!(f, "{value}"),
+            Keywords::LINE => write!(f, "\n"),
+            Keywords::SPACE => write!(f, " "),
+            Keywords::Func => write!(f, "func"),
         }
     }
 }
