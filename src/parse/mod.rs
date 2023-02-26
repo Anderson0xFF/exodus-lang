@@ -1,7 +1,8 @@
 use self::{errors::ErrorCode, statament::Stantament, values::Value};
-use crate::lexer::tokens::Token;
+use crate::lexer::tokens::Keywords;
 use logos::Lexer;
 use std::process::exit;
+use colored::Colorize;
 
 pub mod errors;
 pub mod statament;
@@ -9,14 +10,13 @@ pub mod values;
 
 pub struct Parse {
     filename: String,
-    tokens: Vec<Token>,
+    tokens: Vec<Keywords>,
     idx: i32,
-    space: usize,
     line: usize,
 }
 
 impl Parse {
-    pub fn new(filename: String, lexer: Lexer<Token>) -> Self {
+    pub fn new(filename: String, lexer: Lexer<Keywords>) -> Self {
         let mut tokens = Vec::new();
         for token in lexer {
             tokens.push(token);
@@ -26,7 +26,6 @@ impl Parse {
             filename,
             tokens,
             idx: 0,
-            space: 1,
             line: 1,
         }
     }
@@ -35,58 +34,49 @@ impl Parse {
         let mut stantament = Vec::new();
         loop {
             match self.next() {
-                Token::Let => stantament.push(Stantament::new_let(self)),
-                Token::If => stantament.push(Stantament::new_if(self)),
-                Token::Func => stantament.push(Stantament::new_func(self)),
-                Token::EOF => break,
+                Keywords::Func => stantament.push(Stantament::create_function(self)),
+                Keywords::EOF => break,
                 tk => self.unexpected(tk),
             }
         }
         return stantament;
     }
 
-    fn next(&mut self) -> Token {
+    fn next(&mut self) -> Keywords {
         loop {
             if self.idx >= self.tokens.len() as i32 {
-                return Token::EOF;
+                return Keywords::EOF;
             }
 
             let current = self.tokens[self.idx as usize].clone();
-            if current == Token::LINE {
-                self.space = 0;
-                self.line += 1;
-                self.idx += 1;
-            } else if current == Token::SPACE {
-                self.space += 1;
-                self.idx += 1;
-            } else if current == Token::Error {
-                self.idx += 1;
-                self.space += 1;
-            } else {
-                self.space += 1;
-                self.idx += 1;
-                break current;
+            match current {
+                Keywords::LINE => {
+                    self.line += 1;
+                    self.idx += 1;
+                },
+                Keywords::SPACE =>  self.idx += 1,
+                Keywords::Error => self.idx += 1,
+                _ => {
+                    self.idx += 1;
+                    break current;
+                }
             }
         }
     }
 
-    fn back(&mut self) -> Token {
+    fn back(&mut self) -> Keywords {
         loop {
             if self.idx - 1 > 0 {
                 let current = self.tokens[(self.idx - 2) as usize].clone();
-                if current == Token::LINE {
-                    self.space = 0;
+                if current == Keywords::LINE {
                     self.line -= 1;
                     self.idx -= 1;
-                } else if current == Token::SPACE {
-                    self.space -= 1;
+                } else if current == Keywords::SPACE {
                     self.idx -= 1;
-                } else if current == Token::Error {
+                } else if current == Keywords::Error {
                     self.idx -= 1;
-                    self.space -= 1;
                 } else {
                     self.idx -= 1;
-                    self.space -= 1;
                     break current;
                 }
             } else {
@@ -95,52 +85,48 @@ impl Parse {
         }
     }
 
-    fn check(&mut self, expected: Token) {
+    fn check(&mut self, expected: Keywords) {
         let current = self.next();
         if current != expected {
             self.syntax_error(current, expected);
         }
     }
 
-    pub fn fatal(&self, status: ErrorCode, note: String) -> ! {
+    fn report(&self, status: ErrorCode, note: String) -> ! {
         println!(
-            "{}[{}:{}] => [ status: {:?}, code: 0x{:X} ]\n    note: {}",
+            "{}:{} [ status: {:?}, code: {}{}, note: {} ]",
             self.filename,
-            self.line,
-            self.space,
+            self.line.to_string().bright_white(),
             status,
-            status.code(),
-            note
+            "E0".bright_red(),
+            status.code().to_string().bright_red(),
+            note.cyan().bold()
         );
         exit(0)
     }
 
-    fn syntax_error(&self, current: Token, expected: Token) -> ! {
-        self.fatal(
+    fn syntax_error(&self, current: Keywords, expected: Keywords) -> ! {
+        self.report(
             ErrorCode::STATUS_SYNTAX_ERROR,
-            format!("expected '{:?}' got '{:?}'.", expected, current),
+            format!("expected `{:?}`, found `{:?}`.", expected, current),
         )
     }
 
-    fn unexpected(&self, token: Token) {
-        println!(
-            "syntax error: unexpected '{:?}' in {} -> [{}:{}]",
-            token, self.filename, self.line, self.space
+    fn unexpected(&self, token: Keywords) -> ! {
+        self.report(
+            ErrorCode::STATUS_SYNTAX_ERROR,
+            format!("unexpected token `{:?}`", token)
         );
-        exit(1)
     }
 
     fn check_value(&mut self) -> Value {
         match self.next() {
-            Token::String(value) => Value::STRING(value),
-            Token::IntValue(value) => Value::I32(value as i32),
-            Token::Identifier(value) => Value::REF(value),
-            current => {
-                println!(
-                    "syntax error: expected expression got '{:?}' in [{}] [{}:{}]",
-                    current, self.filename, self.line, self.space
-                );
-                exit(1)
+            Keywords::String(value) => Value::STRING(value),
+            Keywords::IntValue(value) => Value::I32(value as i32),
+            Keywords::Identifier(value) => Value::VAR(value),
+            _ => {
+                let back = self.back();
+                self.report(ErrorCode::STATUS_MISSING_VALUE, format!("missing value after `{:?}`", back));
             }
         }
     }
