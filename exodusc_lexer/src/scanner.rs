@@ -1,30 +1,26 @@
 #![allow(non_camel_case_types)]
 
 use super::types::Type;
-use crate::parse::values::Value;
 use logos::Logos;
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum Expression {
-    Unary {
-        value: Value,
-        operator: Option<Operator>,
-    },
-    Binary {
-        x: Box<Expression>,
-        operator: Operator,
-        y: Box<Expression>,
-    },
+#[derive(Debug, PartialEq, Clone)]
+pub enum Keywords {
+    Let,
+    If,
+    Else,
+    Func,
 }
 
 #[derive(Logos, PartialEq, Clone)]
-pub enum Keywords {
+pub enum Token {
     #[regex("[a-zA-Z]+", |lexer| lexer.slice().to_owned())]
     Identifier(String),
-
+    #[regex("-?[0-9]+", |lexer| lexer.slice().parse())]
+    Integer(i64),
+    #[regex("[0-9]*\\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+", |lexer| lexer.slice().parse())]
+    Floating(f64),
     #[regex(r#""[^"]*""#, |lexer| lexer.slice()[1..(lexer.slice().len()-1)].to_owned())]
     String(String),
-
     #[regex("(true|false)", |lex| {
         match lex.slice(){
             "true" => true,
@@ -32,15 +28,17 @@ pub enum Keywords {
             _=> todo!()
         }
     })]
-    Bool(bool),
-    #[token("let")]
-    Let,
-    #[token("if")]
-    If,
-    #[token("else")]
-    Else,
-    #[token("func")]
-    Func,
+    Boolean(bool),
+    #[regex("let|if|else|func", |lex|{
+        match lex.slice() {
+            "let" => Keywords::Let,
+            "if" => Keywords::If,
+            "else" => Keywords::Else,
+            "func" => Keywords::Func,
+            _=> todo!()
+        }
+    })]
+    Keyword(Keywords),
     #[regex("(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|string|char|bool)", |lex|{
         match lex.slice() {
             "i8" => Type::I8,
@@ -60,7 +58,6 @@ pub enum Keywords {
         }
     })]
     Type(Type),
-
     #[token(".")]
     Dot,
     #[token(",")]
@@ -79,9 +76,6 @@ pub enum Keywords {
     LB,
     #[token("}")]
     RB,
-    #[regex("-?[0-9]+", |lexer| lexer.slice().parse())]
-    IntValue(i64),
-
     #[regex("\\^|\\+|\\-|/|%|\\&|<|>|\\&&|==|!=|\\*|\\|\\||!||->|=|::", |lex|{
         match lex.slice() {
             "+" => Operator::ADD,
@@ -104,46 +98,40 @@ pub enum Keywords {
         }
     })]
     Operator(Operator),
-
     #[token("\n")]
-    LINE,
-
+    Line,
     #[regex(r"[ \t\f]")]
-    SPACE,
-
+    Space,
     #[error]
     Error,
-
     #[token(r"[\3]")]
     EOF,
 }
 
-impl std::fmt::Debug for Keywords {
+impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Keywords::Identifier(identifier) => write!(f, "{identifier}"),
-            Keywords::String(value) => write!(f, "\"{value}\""),
-            Keywords::Let => write!(f, "let"),
-            Keywords::If => write!(f, "if"),
-            Keywords::Else => write!(f, "else"),
-            Keywords::Type(arg0) => f.debug_tuple("Type").field(arg0).finish(),
-            Keywords::Dot => write!(f, "."),
-            Keywords::Comma => write!(f, ","),
-            Keywords::Colon => write!(f, ":"),
-            Keywords::Semicolon => write!(f, ";"),
-            Keywords::Atsign => write!(f, "@"),
-            Keywords::LP => write!(f, "("),
-            Keywords::RP => write!(f, ")"),
-            Keywords::LB => write!(f, "{{"),
-            Keywords::RB => write!(f, "}}"),
-            Keywords::IntValue(value) => write!(f, "{value}"),
-            Keywords::Operator(value) => write!(f, "{:?}", value),
-            Keywords::Error => write!(f, "Error"),
-            Keywords::EOF => write!(f, "eof"),
-            Keywords::Bool(value) => write!(f, "{value}"),
-            Keywords::LINE => write!(f, "\n"),
-            Keywords::SPACE => write!(f, " "),
-            Keywords::Func => write!(f, "func"),
+            Token::Identifier(identifier) => write!(f, "{identifier}"),
+            Token::String(value) => write!(f, "\"{value}\""),
+            Token::Type(arg0) => f.debug_tuple("Type").field(arg0).finish(),
+            Token::Dot => write!(f, "."),
+            Token::Comma => write!(f, ","),
+            Token::Colon => write!(f, ":"),
+            Token::Semicolon => write!(f, ";"),
+            Token::Atsign => write!(f, "@"),
+            Token::LP => write!(f, "("),
+            Token::RP => write!(f, ")"),
+            Token::LB => write!(f, "{{"),
+            Token::RB => write!(f, "}}"),
+            Token::Integer(value) => write!(f, "{value}"),
+            Token::Operator(value) => write!(f, "{:?}", value),
+            Token::Error => write!(f, "Error"),
+            Token::EOF => write!(f, "eof"),
+            Token::Boolean(value) => write!(f, "{value}"),
+            Token::Line => write!(f, "\n"),
+            Token::Space => write!(f, " "),
+            Token::Keyword(kwd) => write!(f, "{:?}", kwd),
+            Token::Floating(value) => write!(f, "{value}"),
         }
     }
 }

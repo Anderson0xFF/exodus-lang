@@ -1,10 +1,6 @@
-[package]
-name = "exodus-lang"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-logos = "0.12"
-colored = "2.0.0"
+members = [
+    "exodusc_lexer",
+    "exodusc",
+]
