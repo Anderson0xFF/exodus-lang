@@ -11,34 +11,91 @@ pub enum Keywords {
     Func,
 }
 
-#[derive(Logos, PartialEq, Clone)]
+impl std::fmt::Display for Keywords {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Keywords::Let => write!(f, "let"),
+            Keywords::If => write!(f, "if"),
+            Keywords::Else => write!(f, "else"),
+            Keywords::Func => write!(f, "func"),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum Literal {
+    Char(char),
+    Integer(i32),
+    Long(i64),
+    Float(f64),
+    Double(f64),
+    String(String),
+    Boolean(bool),
+    Var(String),
+}
+
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Literal::Char(c) => write!(f, "{}", c),
+            Literal::Integer(i) => write!(f, "{}", i),
+            Literal::Long(l) => write!(f, "{}", l),
+            Literal::Float(flt) => write!(f, "{}", flt),
+            Literal::Double(d) => write!(f, "{}", d),
+            Literal::String(s) => write!(f, "{}", s),
+            Literal::Boolean(b) => write!(f, "{}", b),
+            Literal::Var(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+#[derive(Logos, PartialEq, Clone, Debug)]
 pub enum Token {
     #[regex("[a-zA-Z]+", |lexer| lexer.slice().to_owned())]
     Identifier(String),
-    #[regex("-?[0-9]+", |lexer| lexer.slice().parse())]
-    Integer(i64),
-    #[regex("[0-9]*\\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+", |lexer| lexer.slice().parse())]
-    Floating(f64),
-    #[regex(r#""[^"]*""#, |lexer| lexer.slice()[1..(lexer.slice().len()-1)].to_owned())]
-    String(String),
+
+    #[regex("-?[0-9]+", |lexer| {
+        let number : i64 = lexer.slice().parse().expect("Can't parse number!");
+        if number > i32::MAX as i64 {
+            return Literal::Long(number);
+        }
+        return Literal::Integer(number as i32);
+    })]
+    #[regex("[0-9]*\\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+", |lexer| {
+        let number : f64 = lexer.slice().parse().expect("Can't parse number!");
+        if number > f32::MAX as f64 {
+            return Literal::Double(number);
+        }
+        Literal::Float(number)
+    })]
+    #[regex(r#""[^"]*""#, |lexer| {
+        let string: String = lexer.slice()[1..(lexer.slice().len()-1)].to_owned();
+        Literal::String(string)
+    })]
     #[regex("(true|false)", |lex| {
         match lex.slice(){
-            "true" => true,
-            "false" => false,
-            _=> todo!()
+            "true" => Ok(Literal::Boolean(true)),
+            "false" => Ok(Literal::Boolean(false)),
+            _=> Err(())
         }
     })]
-    Boolean(bool),
+    #[regex(r#"'[^']*'"#, |lexer|{
+        let text = &lexer.slice()[1..(lexer.slice().len()-1)];
+        Literal::Char(text.chars().next().expect("Invalid character literal"))
+    })]
+    Literal(Literal),
+
     #[regex("let|if|else|func", |lex|{
         match lex.slice() {
             "let" => Keywords::Let,
             "if" => Keywords::If,
             "else" => Keywords::Else,
             "func" => Keywords::Func,
-            _=> todo!()
+            _ => panic!("Unrecognized Keyword"),
         }
     })]
     Keyword(Keywords),
+
     #[regex("(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|string|char|bool)", |lex|{
         match lex.slice() {
             "i8" => Type::I8,
@@ -54,10 +111,11 @@ pub enum Token {
             "char" => Type::Char,
             "string" => Type::String,
             "bool" => Type::Boolean,
-            _ => todo!(),
+            _ => panic!("Unrecognized Type"), // substituindo todo!() por panic!()
         }
     })]
     Type(Type),
+
     #[token(".")]
     Dot,
     #[token(",")]
@@ -67,15 +125,15 @@ pub enum Token {
     #[token(";")]
     Semicolon,
     #[token("@")]
-    Atsign,
+    AtSign,
     #[token("(")]
-    LP,
+    LParen,
     #[token(")")]
-    RP,
+    RParen,
     #[token("{")]
-    LB,
+    LBrace,
     #[token("}")]
-    RB,
+    RBrace,
     #[regex("\\^|\\+|\\-|/|%|\\&|<|>|\\&&|==|!=|\\*|\\|\\||!||->|=|::", |lex|{
         match lex.slice() {
             "+" => Operator::ADD,
@@ -91,10 +149,10 @@ pub enum Token {
             "||" => Operator::OR,
             "&" => Operator::ADDRESSING,
             "!" => Operator::NOT,
-            "->" => Operator::ACCESS_OBJECT,
+            "->" => Operator::ARROW,
             "::" => Operator::FIND,
             "=" => Operator::ASSIGNMENT,
-            _ => todo!(),
+            _ => panic!("Unrecognized Operator"),
         }
     })]
     Operator(Operator),
@@ -108,35 +166,32 @@ pub enum Token {
     EOF,
 }
 
-impl std::fmt::Debug for Token {
+impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::Identifier(identifier) => write!(f, "{identifier}"),
-            Token::String(value) => write!(f, "\"{value}\""),
-            Token::Type(arg0) => f.debug_tuple("Type").field(arg0).finish(),
+            Token::Identifier(idenf) => write!(f, "{idenf}"),
+            Token::Literal(liteal) => write!(f, "{liteal}"),
+            Token::Keyword(keyword) => write!(f, "{keyword}"),
+            Token::Type(typedef) => write!(f, "{typedef}"),
             Token::Dot => write!(f, "."),
             Token::Comma => write!(f, ","),
             Token::Colon => write!(f, ":"),
             Token::Semicolon => write!(f, ";"),
-            Token::Atsign => write!(f, "@"),
-            Token::LP => write!(f, "("),
-            Token::RP => write!(f, ")"),
-            Token::LB => write!(f, "{{"),
-            Token::RB => write!(f, "}}"),
-            Token::Integer(value) => write!(f, "{value}"),
-            Token::Operator(value) => write!(f, "{:?}", value),
-            Token::Error => write!(f, "Error"),
-            Token::EOF => write!(f, "eof"),
-            Token::Boolean(value) => write!(f, "{value}"),
-            Token::Line => write!(f, "\n"),
+            Token::AtSign => write!(f, "@"),
+            Token::LParen => write!(f, "("),
+            Token::RParen => write!(f, ")"),
+            Token::LBrace => write!(f, "{{"),
+            Token::RBrace => write!(f, "}}"),
+            Token::Operator(op) => write!(f, "{op}"),
+            Token::Line => write!(f, "\\n"),
             Token::Space => write!(f, " "),
-            Token::Keyword(kwd) => write!(f, "{:?}", kwd),
-            Token::Floating(value) => write!(f, "{value}"),
+            Token::Error => write!(f, ""),
+            Token::EOF => write!(f, "EOF"),
         }
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Operator {
     ADD,
     SUB,
@@ -151,12 +206,12 @@ pub enum Operator {
     OR,
     ADDRESSING,
     NOT,
-    ACCESS_OBJECT,
+    ARROW,
     FIND,
     ASSIGNMENT,
 }
 
-impl std::fmt::Debug for Operator {
+impl std::fmt::Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ADD => write!(f, "+"),
@@ -172,7 +227,7 @@ impl std::fmt::Debug for Operator {
             Self::OR => write!(f, "||"),
             Self::ADDRESSING => write!(f, "&"),
             Self::NOT => write!(f, "!"),
-            Self::ACCESS_OBJECT => write!(f, "->"),
+            Self::ARROW => write!(f, "->"),
             Self::ASSIGNMENT => write!(f, "="),
             Self::FIND => write!(f, "::"),
         }
