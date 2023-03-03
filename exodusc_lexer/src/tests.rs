@@ -9,6 +9,7 @@ fn tokenization_identifier() {
 
     let mut lexer = Lexer::tokenization("main", source);
     assert_eq!(lexer.next(), Token::Identifier(String::from("x")));
+    assert_eq!(lexer.next(), Token::EOF);
 }
 
 #[test]
@@ -17,6 +18,7 @@ fn tokenization_number_integer() {
 
     let mut lexer = Lexer::tokenization("main", source);
     assert_eq!(lexer.next(), Token::Literal(crate::scanner::Literal::Integer(256)));
+    assert_eq!(lexer.next(), Token::EOF);
 }
 
 #[test]
@@ -25,6 +27,7 @@ fn tokenization_number_floating() {
 
     let mut lexer = Lexer::tokenization("main", source);
     assert_eq!(lexer.next(), Token::Literal(crate::scanner::Literal::Float(73.81)));
+    assert_eq!(lexer.next(), Token::EOF);
 }
 
 #[test]
@@ -33,6 +36,8 @@ fn tokenization_type_i32() {
 
     let mut lexer = Lexer::tokenization("main", source);
     assert_eq!(lexer.next(), Token::Type(crate::types::Type::I32));
+    assert_eq!(lexer.next(), Token::EOF);
+
 }
 
 #[test]
@@ -41,6 +46,7 @@ fn tokenization_type_f32() {
 
     let mut lexer = Lexer::tokenization("main", source);
     assert_eq!(lexer.next(), Token::Type(crate::types::Type::F32));
+    assert_eq!(lexer.next(), Token::EOF);
 }
 
 #[test]
@@ -53,6 +59,8 @@ fn tokenization_let_keyword() {
     assert_eq!(lexer.next(), Token::Operator(Operator::ASSIGNMENT));
     assert_eq!(lexer.next(), Token::Literal(crate::scanner::Literal::Integer(2)));
     assert_eq!(lexer.next(), Token::Semicolon);
+    assert_eq!(lexer.next(), Token::EOF);
+
 }
 
 #[test]
@@ -68,4 +76,6 @@ fn tokenization_if_keyword() {
     assert_eq!(lexer.next(), Token::RParen);
     assert_eq!(lexer.next(), Token::LBrace);
     assert_eq!(lexer.next(), Token::RBrace);
+    assert_eq!(lexer.next(), Token::EOF);
+
 }
