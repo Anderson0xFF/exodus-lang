@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 logos = "0.12"
-colored = "2.0.0"
