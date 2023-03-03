@@ -1,10 +1,8 @@
-use scanner::{Token};
+use scanner::Token;
 use logos::Logos;
 
-pub mod expressions;
 pub mod scanner;
 pub mod types;
-pub mod values;
 
 #[cfg(test)]
 mod tests;
@@ -57,13 +55,26 @@ impl Lexer {
         }
     }
 
+    pub fn peek(&mut self) -> Token {
+        let peek = self.next();
+        self.back();
+        return peek;
+    }
+
+    pub fn skip(&mut self) {
+        if self.idx >= self.data.len() as i32 {
+            return;
+        }
+        self.idx += 1;
+    }
+
     pub fn back(&mut self) -> Token {
         loop {
             if self.idx - 1 <= 0 {
                 return Token::EOF;
             }
 
-            match self.data[(self.idx - 2) as usize].clone() {
+            match self.data[(self.idx - 1) as usize].clone() {
                 Token::Line => {
                     self.line -= 1;
                     self.idx -= 1;
