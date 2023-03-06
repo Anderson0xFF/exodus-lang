@@ -9,6 +9,7 @@ pub enum Keywords {
     If,
     Else,
     Func,
+    Return,
 }
 
 impl std::fmt::Display for Keywords {
@@ -18,12 +19,14 @@ impl std::fmt::Display for Keywords {
             Keywords::If => write!(f, "if"),
             Keywords::Else => write!(f, "else"),
             Keywords::Func => write!(f, "func"),
+            Keywords::Return => write!(f, "return"),
         }
     }
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Literal {
+    Default,
     Char(char),
     Integer(i32),
     Long(i64),
@@ -45,6 +48,7 @@ impl std::fmt::Display for Literal {
             Literal::String(s) => write!(f, "{}", s),
             Literal::Boolean(b) => write!(f, "{}", b),
             Literal::Var(v) => write!(f, "{}", v),
+            Literal::Default => write!(f, "??"),
         }
     }
 }
@@ -85,12 +89,13 @@ pub enum Token {
     })]
     Literal(Literal),
 
-    #[regex("let|if|else|func", |lex|{
+    #[regex("let|if|else|func|return", |lex|{
         match lex.slice() {
             "let" => Keywords::Let,
             "if" => Keywords::If,
             "else" => Keywords::Else,
             "func" => Keywords::Func,
+            "return" => Keywords::Return,
             _ => panic!("Unrecognized Keyword"),
         }
     })]
@@ -150,7 +155,7 @@ pub enum Token {
             "&" => Operator::ADDRESSING,
             "!" => Operator::NOT,
             "->" => Operator::ARROW,
-            "::" => Operator::FIND,
+            "::" => Operator::NAVIGATION,
             "=" => Operator::ASSIGNMENT,
             _ => panic!("Unrecognized Operator"),
         }
@@ -165,6 +170,7 @@ pub enum Token {
     #[token(r"[\3]")]
     EOF,
 }
+
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -186,7 +192,7 @@ impl std::fmt::Display for Token {
             Token::Line => write!(f, "\\n"),
             Token::Space => write!(f, " "),
             Token::Error => write!(f, ""),
-            Token::EOF => write!(f, "EOF"),
+            Token::EOF => write!(f, "end of file"),
         }
     }
 }
@@ -207,7 +213,7 @@ pub enum Operator {
     ADDRESSING,
     NOT,
     ARROW,
-    FIND,
+    NAVIGATION,
     ASSIGNMENT,
 }
 
@@ -229,7 +235,7 @@ impl std::fmt::Display for Operator {
             Self::NOT => write!(f, "!"),
             Self::ARROW => write!(f, "->"),
             Self::ASSIGNMENT => write!(f, "="),
-            Self::FIND => write!(f, "::"),
+            Self::NAVIGATION => write!(f, "::"),
         }
     }
 }
