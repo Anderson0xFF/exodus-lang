@@ -9,6 +9,7 @@ pub enum Keywords {
     If,
     Else,
     Func,
+    While,
     Return,
 }
 
@@ -20,6 +21,7 @@ impl std::fmt::Display for Keywords {
             Keywords::Else => write!(f, "else"),
             Keywords::Func => write!(f, "func"),
             Keywords::Return => write!(f, "return"),
+            Keywords::While => write!(f, "while"),
         }
     }
 }
@@ -89,13 +91,14 @@ pub enum Token {
     })]
     Literal(Literal),
 
-    #[regex("let|if|else|func|return", |lex|{
+    #[regex("let|if|else|func|return|while", |lex|{
         match lex.slice() {
             "let" => Keywords::Let,
             "if" => Keywords::If,
             "else" => Keywords::Else,
             "func" => Keywords::Func,
             "return" => Keywords::Return,
+            "while" => Keywords::While,
             _ => panic!("Unrecognized Keyword"),
         }
     })]
