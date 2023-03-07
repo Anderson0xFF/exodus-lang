@@ -1,7 +1,6 @@
-
 #[derive(PartialEq, Debug, Clone)]
 pub enum Type {
-    Any,
+    Void,
     I8,
     I16,
     I32,
@@ -21,7 +20,7 @@ pub enum Type {
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Any => write!(f, "Any"),
+            Self::Void => write!(f, "Any"),
             Self::I8 => write!(f, "i8"),
             Self::I16 => write!(f, "i16"),
             Self::I32 => write!(f, "i32"),
@@ -35,13 +34,13 @@ impl std::fmt::Display for Type {
             Self::Boolean => write!(f, "bool"),
             Self::Char => write!(f, "char"),
             Self::String => write!(f, "string"),
-            Self::Object(type_def) =>  write!(f, "{type_def}"),
+            Self::Object(typedef) => write!(f, "{}", typedef),
         }
     }
 }
 
 impl Type {
-    pub fn is_any(&self) -> bool{
-        return self == &Type::Any
+    pub fn is_any(&self) -> bool {
+        return self == &Type::Void;
     }
 }
